@@ -1,0 +1,67 @@
+#include<stdio.h>
+#include<string.h>
+
+void main() {
+    FILE *inputFile, *symbolTableFile, *operationTableFile;
+    int locationCounter, startingAddress, programLength, operationCode, operationValue, length;
+    char mnemonic[20], label[20], operand[20], operationTableMnemonic[20];
+
+    inputFile = fopen("input.txt", "r");
+    symbolTableFile = fopen("symtab.txt", "w");
+
+    fscanf(inputFile, "%s%s%d", label, mnemonic, &operationCode);
+    if (strcmp(mnemonic, "START") == 0) {
+        startingAddress = operationCode;
+        locationCounter = startingAddress;
+        printf("\t%s\t%s\t%d\n", label, mnemonic, operationCode);
+    } else {
+        locationCounter = 0;
+    }
+
+    fscanf(inputFile, "%s%s", label, mnemonic);
+    while (!feof(inputFile)) {
+        fscanf(inputFile, "%s", operand);
+        printf("\n%d\t%s\t%s\t%s\n", locationCounter, label, mnemonic, operand);
+
+        if (strcmp(label, "-") != 0) {
+            fprintf(symbolTableFile, "\n%d\t%s\n", locationCounter, label);
+        }
+
+        operationTableFile = fopen("optab.txt", "r");
+        fscanf(operationTableFile, "%s%d", operationTableMnemonic, &operationValue);
+        while (!feof(operationTableFile)) {
+            if (strcmp(mnemonic, operationTableMnemonic) == 0) {
+                locationCounter += 3;
+                break;
+            }
+            fscanf(operationTableFile, "%s%d", operationTableMnemonic, &operationValue);
+        }
+        fclose(operationTableFile);
+
+        if (strcmp(mnemonic, "WORD") == 0) {
+            locationCounter += 3;
+        } else if (strcmp(mnemonic, "RESW") == 0) {
+            operationCode = atoi(operand);
+            locationCounter += (3 * operationCode);
+        } else if (strcmp(mnemonic, "BYTE") == 0) {
+            if (operand[0] == 'X') {
+                locationCounter += 1;
+            } else {
+                length = strlen(operand) - 2;
+                locationCounter += length;
+            }
+        } else if (strcmp(mnemonic, "RESB") == 0) {
+            operationCode = atoi(operand);
+            locationCounter += operationCode;
+        }
+
+        fscanf(inputFile, "%s%s", label, mnemonic);
+    }
+
+    if (strcmp(mnemonic, "END") == 0) {
+        printf("Program Length = %d\n", locationCounter - startingAddress);
+    }
+
+    fclose(inputFile);
+    fclose(symbolTableFile);
+}
